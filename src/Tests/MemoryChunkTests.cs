@@ -3,10 +3,11 @@ using NUnit.Framework;
 using src.Runtime;
 using Unity.Collections;
 
+
 namespace NECS.Tests
 {
     
-    public class MemoryChunkTests
+    public unsafe class MemoryChunkTests
     {
         public struct TestThingy
         {
@@ -20,16 +21,16 @@ namespace NECS.Tests
             Allocator<TestThingy> allocator = new Allocator<TestThingy>();
 
 
-            Allocator<TestThingy>.MemoryChunk chunk = new Allocator<TestThingy>.MemoryChunk();
-
-            TestThingy a = new TestThingy();
-            bool res = chunk.Alloc(ref a);
-
-            Assert.IsTrue(res);
+            Allocator<TestThingy>.MemoryChunk_ManualAlloc chunk = new Allocator<TestThingy>.MemoryChunk_ManualAlloc();
             
-            a.name = 'T';
+            var res = chunk.allocate();
+
+            Assert.False(res == null);
             
-            //Assert.Equals(a.name)
+            res->name = 'T';
+
+            Assert.AreEqual(res->name, 'T');
+            Assert.AreEqual(res->name, chunk.chunkStart->element.name);
         }
         
     }

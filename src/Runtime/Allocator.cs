@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
 
+[assembly: InternalsVisibleTo("NECS.Tests")]
 namespace NECS.Runtime
 {
     public unsafe class Allocator<Type> where Type : unmanaged
@@ -15,12 +17,12 @@ namespace NECS.Runtime
         /// This represents a single element of the memory chunks and is used for accessing the given element as either a pointer to the next free slot or as the Entity
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
-        protected struct Element
+        internal struct Element
         {
             /// <summary>
             /// If the element is free this represents the next free in the free list
             /// </summary>
-            public int next;
+            public Element* next;
 
             public Type element;
         };
@@ -34,7 +36,7 @@ namespace NECS.Runtime
         /// <summary>
         /// The size of a single Entity
         /// </summary>
-        private static int ELEMENT_SIZE = UnsafeUtility.SizeOf(typeof(Type));
+        private static int ELEMENT_SIZE = sizeof(Element);
 
         /// <summary>
         /// The size of the Memoty Chunks in bytes
@@ -60,23 +62,21 @@ namespace NECS.Runtime
         
         #region Temp
         
-#if flase
-        
-        internal class MemoryChunk_ManualAlloc
+        public class MemoryChunk_ManualAlloc
         {
-            void* chunkStart;
-            void* chunkEnd;
+            internal Element* chunkStart;
+            Element* chunkEnd;
 
             int count;
             const bool FreeFlag = true;
             bool[] metadata = new bool[MAX_OBJECTS_IN_CHUNK];
 
             //Points to the next free element in the pool
-            void* nextFree;
+            Element* nextFree;
 
-            MemoryChunk_ManualAlloc()
+            public MemoryChunk_ManualAlloc()
             {
-                chunkStart = UnsafeUtility.Malloc(ALLOC_SIZE,0,Allocator.Persistent);
+                chunkStart = (Element*)UnsafeUtility.Malloc(ALLOC_SIZE,0,Allocator.Persistent);
 
                 //memset(chunkStart, -1, ALLOC_SIZE);
 
@@ -84,59 +84,44 @@ namespace NECS.Runtime
 
                 for (int i = 1; i < MAX_OBJECTS_IN_CHUNK; i++)
                 {
-                    var e = UnsafeUtility.ReadArrayElement<Element>(chunkStart, i - 1);
-                        e.next = UnsafeUtility.AddressOf<>(ref chunkStart[i]);
-                    UnsafeUtility.WriteArrayElement(chunkStart,i-1,e);
+                    chunkStart[i - 1].next = &chunkStart[i];
                     metadata[i] = FreeFlag;
                 }
                 
-                UnsafeUtility.WriteArrayElement(chunkStart,MAX_OBJECTS_IN_CHUNK - 1,new Element(){next = null});
-                
-                //chunkStart[MAX_OBJECTS_IN_CHUNK - 1]->next = IntPtr.Zero;
+                chunkStart[MAX_OBJECTS_IN_CHUNK - 1].next = null;
                 nextFree = chunkStart;
             }
 
-            void* allocate_ptr()
+            public Type* allocate()
             {
                 if (nextFree == null)
                     return null;
                 count++;
                 var res = nextFree;
-                nextFree = UnsafeUtility.AsRef<Element>(nextFree).next;
+                nextFree = nextFree->next;
 
-                int i = ((int)res - (int)chunkStart);
+                long i = ((Element*)res - (Element*)chunkStart);
                 metadata[i] = !FreeFlag;
 
-                return res;
-            }
-            
-            Type allocate()
-            {
-                var ptr = allocate_ptr();
-
-                
-                
-                return UnsafeUtility.AsRef<Element>(ptr).element;
+                return (Type*)res;
             }
 
             void free(void* ptr)
             {
-                /*
                 count--;
-                auto element = ((Element*)ptr);
+                var element = ((Element*)ptr);
                 element->next = nextFree;
                 nextFree = element;
 
-                int i = ((Element*)ptr - (Element*)chunkStart);
+                long i = ((Element*)ptr - (Element*)chunkStart);
                 metadata[i] = FreeFlag;
-                */
             }
 
         }
         
-#endif
         #endregion
 
+        /*
         public class MemoryChunk : IMemoryChunk
         {
             private Element[] _data = new Element[MAX_OBJECTS_IN_CHUNK];
@@ -176,7 +161,7 @@ namespace NECS.Runtime
             
             void Free(ref Type data)
             {
-                /*
+                
                 var ptr = ((IntPtr)UnsafeUtility.AddressOf(ref data));
                 var chunkStart = ((IntPtr)UnsafeUtility.AddressOf(ref _data[0]));
                 
@@ -187,12 +172,13 @@ namespace NECS.Runtime
                 _nextFree = element;
                 
                 _freeTable[i] = true;
-                */
+                
             }
         }
+        */
         
         
-        private List<MemoryChunk> _chunks;
+        private List<MemoryChunk_ManualAlloc> _chunks;
 
         
         
