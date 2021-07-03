@@ -1,0 +1,19 @@
+
+{
+  "name": "com.dpeter99.necs",
+  "version": "0.1.0",
+  "displayName": "NOT ECS",
+  "description": "This package provides a Component for Unity GameObjects that allows users to add arbitrary fields to them in UnityEditor.",
+  "unity": "2021.2",
+  "keywords": [
+    "Component",
+    "GameObject",
+    "arbitrary fields"
+  ],
+  "author": {
+    "name": "EngineArtist",
+    "email": "miika.vihersaari@gmail.com",
+    "url": "https://github.com/EngineArtist"
+  },
+  "hideInEditor": false
+}

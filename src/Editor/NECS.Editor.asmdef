@@ -1,0 +1,30 @@
+{
+    "name": "NECS_Editor",
+    "rootNamespace": "",
+    "references": [
+        "Unity.Build",
+        "Unity.Build.Classic",
+        "GUID:e0cd26848372d4e5c891c569017e11f1",
+        "Unity.Entities",
+        "Unity.Entities.Hybrid",
+        "GUID:d8b63aba1907145bea998dd612889d6b",
+        "Unity.Mathematics.Extensions",
+        "Unity.Properties",
+        "Unity.Scenes",
+        "Unity.ScriptableBuildPipeline.Editor",
+        "Unity.Serialization",
+        "Unity.Build.DotsRuntime",
+        "GUID:aec7297a187bb3043a433de14f019bb9"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
