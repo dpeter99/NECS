@@ -11,7 +11,15 @@ using Unity.Collections.LowLevel.Unsafe;
 [assembly: InternalsVisibleTo("NECS.Tests")]
 namespace NECS.Runtime
 {
-    public unsafe class Allocator<Type> where Type : unmanaged
+
+    public unsafe interface IComponentContainer
+    {
+        void* CreateObject();
+        
+        void DestroyObject(void* o);
+    }
+    
+    public unsafe class ComponentContainer<Type> : IComponentContainer, IEnumerable<Type> where Type : unmanaged
     {
         /// <summary>
         /// This represents a single element of the memory chunks and is used for accessing the given element as either a pointer to the next free slot or as the Entity
@@ -23,7 +31,7 @@ namespace NECS.Runtime
             /// If the element is free this represents the next free in the free list
             /// </summary>
             public Element* next;
-
+            
             public Type element;
         };
 
@@ -31,7 +39,7 @@ namespace NECS.Runtime
         /// The maximum number of Entities in a MemoryChunk
         /// </summary>
         /// This is basically the size of the memory array that gets allocated.
-        private const int MAX_OBJECTS_IN_CHUNK = 2048;
+        private const int MAX_OBJECTS_IN_CHUNK = 32;
 
         /// <summary>
         /// The size of a single Entity
@@ -43,38 +51,24 @@ namespace NECS.Runtime
         /// </summary>
         private static int ALLOC_SIZE = ELEMENT_SIZE * MAX_OBJECTS_IN_CHUNK;
 
-        /*
-        /// <summary>
-        /// The size of a single Entity
-        /// </summary>
-        public const int ELEMENT_SIZE = (sizeof(Element));
-
-        /// <summary>
-        /// The size of the Memoty Chunks in bytes
-        /// </summary>
-        public const int ALLOC_SIZE = ELEMENT_SIZE * MAX_OBJECTS_IN_CHUNK;
-        */
-
         interface IMemoryChunk
         {
             public bool Alloc(ref Type data);
         }
         
-        #region Temp
-        
-        public class MemoryChunk_ManualAlloc
+        public class MemoryChunk
         {
             internal Element* chunkStart;
-            Element* chunkEnd;
+            internal Element* chunkEnd;
 
-            int count;
+            internal int count;
             const bool FreeFlag = true;
-            bool[] metadata = new bool[MAX_OBJECTS_IN_CHUNK];
+            internal bool[] metadata = new bool[MAX_OBJECTS_IN_CHUNK];
 
             //Points to the next free element in the pool
             Element* nextFree;
 
-            public MemoryChunk_ManualAlloc()
+            public MemoryChunk()
             {
                 chunkStart = (Element*)UnsafeUtility.Malloc(ALLOC_SIZE,0,Allocator.Persistent);
 
@@ -103,7 +97,7 @@ namespace NECS.Runtime
                 long i = ((Element*)res - (Element*)chunkStart);
                 metadata[i] = !FreeFlag;
 
-                return (Type*)res;
+                return (&res->element);
             }
 
             void free(void* ptr)
@@ -117,72 +111,139 @@ namespace NECS.Runtime
                 metadata[i] = FreeFlag;
             }
 
-        }
-        
-        #endregion
-
-        /*
-        public class MemoryChunk : IMemoryChunk
-        {
-            private Element[] _data = new Element[MAX_OBJECTS_IN_CHUNK];
-
-            private int _nextFree = 0;
-            private bool[] _freeTable = new bool[MAX_OBJECTS_IN_CHUNK];
-            
-            public MemoryChunk()
+            ~MemoryChunk()
             {
-                
-                for (int i = 1; i < MAX_OBJECTS_IN_CHUNK; i++)
-                {
-                    _data[i - 1] = new Element() {next = i};
-                    _freeTable[i - 1] = true;
-                }
+                UnsafeUtility.Free(chunkStart, Allocator.Persistent);
+            }
+            
+        }
 
-                _data[MAX_OBJECTS_IN_CHUNK - 1] = new Element() {next = -1};
+        public class Iterator : IEnumerator<Type>
+        {
+            private List<MemoryChunk>.Enumerator _currentChunk;
+
+            Element* _currentElement;
+
+            private int index = 0;
+            
+            public Iterator(List<MemoryChunk>.Enumerator begin)
+            {
+                _currentChunk = begin;
+
+                //_currentChunk.MoveNext();
+                //_currentElement = (_currentChunk.Current).chunkStart;
+
 
             }
             
-            public bool Alloc(ref Type data)
+            public bool MoveNext()
             {
-                if (_nextFree == -1)
+                if (_currentChunk.Current == null)
                 {
-                    data = default;
-                    return false;
+                    _currentChunk.MoveNext();
+                    _currentElement = (_currentChunk.Current).chunkStart;
+                    return true;
                 }
                 
-                _freeTable[_nextFree] = false;
-
-                data = ref _data[_nextFree].element;
-
-                _nextFree = _data[_nextFree].next;
+                // move to next object in current chunk
+                _currentElement = &_currentElement[1];
+                index++;
                 
+                while (index < MAX_OBJECTS_IN_CHUNK && ((_currentChunk.Current).metadata[index] == true)) {
+
+                    _currentElement = &_currentElement[1];
+                    index++;
+                }
+                
+                // if we reached end of list, move to next chunk
+                if (_currentElement == (_currentChunk.Current).chunkEnd)
+                {
+                    index = 0;
+                    if (_currentChunk.MoveNext())
+                    {
+                        // set object iterator to begin of next chunk list
+                        //assert((*m_CurrentChunk) != nullptr);
+                        _currentElement = (_currentChunk.Current).chunkStart;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
                 return true;
             }
-            
-            void Free(ref Type data)
+
+            public void Reset()
             {
                 
-                var ptr = ((IntPtr)UnsafeUtility.AddressOf(ref data));
-                var chunkStart = ((IntPtr)UnsafeUtility.AddressOf(ref _data[0]));
-                
-                int i = ((int)ptr - (int)chunkStart);
-                
-                var element = i;
-                _data[i].next = _nextFree;
-                _nextFree = element;
-                
-                _freeTable[i] = true;
+            }
+
+            public Type Current => _currentElement->element;
+
+            object IEnumerator.Current => Current;
+
+            public void Dispose()
+            {
                 
             }
         }
-        */
         
-        
-        private List<MemoryChunk_ManualAlloc> _chunks;
+        private List<MemoryChunk> _chunks = new List<MemoryChunk>();
 
-        
-        
 
-        
+        public void* CreateObject()
+        {
+            void* slot = null;
+
+            // get next free slot
+            foreach (var chunk in _chunks)
+            {
+                if (chunk.count > MAX_OBJECTS_IN_CHUNK)
+                    continue;
+
+                slot = chunk.allocate();
+                if (slot != null)
+                {
+                    //chunk->objects.push_back((OBJECT_TYPE*)slot);
+                    break;
+                }
+            }
+
+            // all chunks are full... allocate a new one
+            if (slot == null)
+            {
+                //Allocator* allocator = new Allocator(ALLOC_SIZE, Allocate(ALLOC_SIZE, this->m_AllocatorTag), sizeof(OBJECT_TYPE), alignof(OBJECT_TYPE));
+                var newChunk = new MemoryChunk();
+
+                // put new chunk in front
+                _chunks.Add(newChunk);
+
+                slot = newChunk.allocate();
+
+                //TODO: Ammm this is for later for sure... (I hope)
+                //assert(slot != nullptr && "Unable to create new object. Out of memory?!");
+                
+                //newChunk->objects.clear();
+                //newChunk->objects.push_back((OBJECT_TYPE*)slot);
+            }
+
+            return slot;
+        }
+
+        public void DestroyObject(void* o)
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerator<Type> IEnumerable<Type>.GetEnumerator()
+        {
+            return new Iterator(_chunks.GetEnumerator());
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return new Iterator(_chunks.GetEnumerator());
+        }
     }
 }

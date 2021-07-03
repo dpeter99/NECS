@@ -18,10 +18,10 @@ namespace NECS.Tests
         [Test]
         public void TestAllocator()
         {
-            Allocator<TestThingy> allocator = new Allocator<TestThingy>();
+            ComponentContainer<TestThingy> componentContainer = new ComponentContainer<TestThingy>();
 
 
-            Allocator<TestThingy>.MemoryChunk_ManualAlloc chunk = new Allocator<TestThingy>.MemoryChunk_ManualAlloc();
+            ComponentContainer<TestThingy>.MemoryChunk chunk = new ComponentContainer<TestThingy>.MemoryChunk();
             
             var res = chunk.allocate();
 
@@ -31,6 +31,7 @@ namespace NECS.Tests
 
             Assert.AreEqual(res->name, 'T');
             Assert.AreEqual(res->name, chunk.chunkStart->element.name);
+            
         }
         
     }

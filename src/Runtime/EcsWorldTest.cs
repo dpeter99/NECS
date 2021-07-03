@@ -13,12 +13,9 @@ namespace NECS
     [DisallowMultipleComponent]
     public class EcsWorldTest : MonoBehaviour
     {
-        public SceneAsset scene;
-
-        public Scene EditingScene;
-
-        private EcsWorld world;
-
+        private EcsWorld _world;
+        public EcsWorld World => _world;
+        
         private static List<EcsWorldTest> _allWorlds = new List<EcsWorldTest>();
 
         public static List<EcsWorldTest> AllWorlds
@@ -27,31 +24,31 @@ namespace NECS
             set => _allWorlds = value;
         }
 
+        
+        
         //TODO: Loading
         public bool IsLoaded => true;
 
         void OnEnable()
         {
             _allWorlds.Add(this);
+            _world = new EcsWorld();
+            _world.Init();
 
-            //EditingScene = EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(scene));
-            
-            //SceneHierarchyHooks.ReloadAllSceneHierarchies();
+            _world.AddNewEntity();
+            _world.AddNewEntity();
+            _world.AddNewEntity();
         }
 
         private void OnDisable()
         {
             _allWorlds.Remove(this);
+            
         }
 
         private void Start()
         {
-            //world = new EcsWorld();
-            //world.Init();
 
-            //world.AddNewEntity();
-            //world.AddNewEntity();
-            //world.AddNewEntity();
         }
     }
 }

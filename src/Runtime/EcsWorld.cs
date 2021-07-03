@@ -1,26 +1,26 @@
-﻿using Unity.Collections;
+﻿using System.Collections;
+using System.Collections.Generic;
+using NECS.Runtime;
+using Unity.Collections;
 
 namespace NECS
 {
-    public struct EcsWorld
+    public class EcsWorld
     {
-        private NativeList<Entity> _entities;
-
+        private EntityManager _manager = new EntityManager();
         
         
         private int _nextID;
+        public IEnumerable<Entity> Entities => _manager.GetEntities();
 
         public void Init()
         {
-            _entities = new NativeList<Entity>(Allocator.Persistent);
+            
         }
 
-        public Entity AddNewEntity()
+        public rtm_ptr AddNewEntity()
         {
-            var e = new Entity(_nextID);
-            _nextID++;
-
-            _entities.Add(e);
+            var e = _manager.CreateEntity();
             
             return e;
         }
