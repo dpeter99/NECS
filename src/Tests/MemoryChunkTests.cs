@@ -8,9 +8,9 @@ namespace NECS.Tests
     
     public class MemoryChunkTests
     {
-        public class TestThingy
+        public struct TestThingy
         {
-            public string name;
+            public char name;
         }
         
 
@@ -27,7 +27,7 @@ namespace NECS.Tests
 
             Assert.IsTrue(res);
             
-            a.name = "Test";
+            a.name = 'T';
             
             //Assert.Equals(a.name)
         }

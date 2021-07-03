@@ -9,7 +9,7 @@ using Unity.Collections.LowLevel.Unsafe;
 
 namespace NECS.Runtime
 {
-    public unsafe class Allocator<Type> where Type : new()
+    public unsafe class Allocator<Type> where Type : unmanaged
     {
         /// <summary>
         /// This represents a single element of the memory chunks and is used for accessing the given element as either a pointer to the next free slot or as the Entity
@@ -146,7 +146,7 @@ namespace NECS.Runtime
             
             public MemoryChunk()
             {
-
+                
                 for (int i = 1; i < MAX_OBJECTS_IN_CHUNK; i++)
                 {
                     _data[i - 1] = new Element() {next = i};
@@ -167,7 +167,7 @@ namespace NECS.Runtime
                 
                 _freeTable[_nextFree] = false;
 
-                data = _data[_nextFree].element = new Type();
+                data = ref _data[_nextFree].element;
 
                 _nextFree = _data[_nextFree].next;
                 
