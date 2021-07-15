@@ -7,19 +7,9 @@ using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
-
-[assembly: InternalsVisibleTo("NECS.Tests")]
 namespace NECS.Runtime
 {
-
-    public unsafe interface IComponentContainer
-    {
-        void* CreateObject();
-        
-        void DestroyObject(void* o);
-    }
-    
-    public unsafe class ComponentContainer<Type> : IComponentContainer, IEnumerable<Type> where Type : unmanaged
+    public unsafe class ComponentContainer<Type> : IComponentContainer, IEnumerable<Type>, IDisposable where Type : unmanaged
     {
         /// <summary>
         /// This represents a single element of the memory chunks and is used for accessing the given element as either a pointer to the next free slot or as the Entity
@@ -56,7 +46,7 @@ namespace NECS.Runtime
             public bool Alloc(ref Type data);
         }
         
-        public class MemoryChunk
+        public class MemoryChunk: IDisposable
         {
             internal Element* chunkStart;
             internal Element* chunkEnd;
@@ -113,9 +103,19 @@ namespace NECS.Runtime
 
             ~MemoryChunk()
             {
-                UnsafeUtility.Free(chunkStart, Allocator.Persistent);
+                ReleaseUnmanagedResources();
             }
-            
+
+            private void ReleaseUnmanagedResources()
+            {
+                UnsafeUtility.Free(chunkStart,Allocator.Persistent);
+            }
+
+            public void Dispose()
+            {
+                ReleaseUnmanagedResources();
+                GC.SuppressFinalize(this);
+            }
         }
 
         public class Iterator : IEnumerator<Type>
@@ -244,6 +244,15 @@ namespace NECS.Runtime
         IEnumerator IEnumerable.GetEnumerator()
         {
             return new Iterator(_chunks.GetEnumerator());
+        }
+
+        public void Dispose()
+        {
+
+            for (int i = 0; i < _chunks.Count; i++)
+            {
+                _chunks[i].Dispose();
+            }
         }
     }
 }

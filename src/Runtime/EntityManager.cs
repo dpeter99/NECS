@@ -3,19 +3,27 @@ using System.Collections.Generic;
 using JetBrains.Annotations;
 using NECS;
 using NECS.Runtime;
+using src.Runtime;
+using src.Runtime.Types;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using UnityEditor;
 using UnityEngine;
+using Debug = System.Diagnostics.Debug;
 
 namespace NECS.Runtime
 {
-    public unsafe class EntityManager
+    public unsafe class EntityManager : IDisposable
     {
+        
+        private EcsWorld _world;
+        
         /// <summary>
         /// A list of allocators mapped to the type they are responsible for.
         /// </summary>
         internal Dictionary<Type, IComponentContainer> _containerRegistries = new Dictionary<Type, IComponentContainer>();
 
+        //NativeHashMap<GUID,IComponentContainer> 
 
         NativeList<IntPtr> _entityLUT = new (ENTITY_LUT_GROW, Allocator.Persistent);
 		
@@ -29,6 +37,12 @@ namespace NECS.Runtime
 		 * \brief The next assignable Unique ID
 		 */
         int nextUID = 0;
+
+
+        public EntityManager(EcsWorld world)
+        {
+            this._world = world;
+        }
         
         /**
 		 * \brief Returns the correct container for the entity type
@@ -58,11 +72,12 @@ namespace NECS.Runtime
         }
 
         /**
-		 * \brief Assigns the next free LUT index to this entity
-		 * \param component
-		 * \return
-		 */
-        int AssignIndexToEntity(Entity* component)
+         * \brief Assigns the next free LUT index to this entity
+         * \param component
+         * \return
+         * <param name="entityComponentLinker"></param>
+         */
+        int AssignIndexToEntity(EntityComponentLinker* entityComponentLinker)
         {
             int i = 0;
             if (LUTFragm)
@@ -84,76 +99,102 @@ namespace NECS.Runtime
                     _entityLUT.Length = _entityLUT.Capacity + ENTITY_LUT_GROW;
                 }
             }
-
-            /*
-            for (; i < this->m_EntityLUT.size(); ++i)
-            {
-                if (this->m_EntityLUT[i] == nullptr)
-                {
-                    this->m_EntityLUT[i] = component;
-                    return i;
-                }
-            }
-            */
+            
 
             // increase component LUT size
 
             var ptr = NativeListUnsafeUtility.GetUnsafePtr(_entityLUT);
             
-            _entityLUT[i] = (IntPtr)component;
+            _entityLUT[i] = (IntPtr)entityComponentLinker;
             return i;
         }
         
+        /// <summary>
+        /// Instantiates a new entity
+        /// </summary>
+        /// <returns>A new Entity reference</returns>
+        public Entity CreateEntity()
+        {
+            EntityComponentLinker* pObjectMemory = (EntityComponentLinker*) GetComponentContainer<EntityComponentLinker>().CreateObject();
+            
+            int runtimeIndex = AssignIndexToEntity(pObjectMemory);
+            
+            Entity ent = new Entity()
+            {
+                _runtimeIndex = runtimeIndex,
+                _UUID = nextUID,
+                _woldID = _world.ID
+            };
+
+            pObjectMemory->entitiy = ent;
+            pObjectMemory->components = new UnsafeList<IntPtr>(1, Allocator.Persistent);
+            
+            nextUID++;
+
+            return ent;
+        }
         
-        /**
-		 * \brief Instantiates a new entity
-		 * \tparam T Type of the Entity
-		 * \tparam ARGS Constructor parameters of the Entity
-		 * \param args Constructor parameters of the Entity
-		 * \return
-		 */
-        public rtm_ptr CreateEntity()
+        public T AddComponent<T>(Entity entity) where T : unmanaged, IComponent
         {
             //The type ID of the thing we are trying to add
-            var CTID = typeof(Entity);
+            var CTID = typeof(Entity).GUID;
 
             // acquire memory for new entity object of type Type
-            void* pObjectMemory = GetComponentContainer<Entity>().CreateObject();
+            void* pObjectMemory = GetComponentContainer<T>().CreateObject();
 
+            ((EntityComponentLinker*)_entityLUT[entity._runtimeIndex])->components.Add((IntPtr) pObjectMemory);
+            
             //Assign the index and the UID to the object
-            int runtimeIndex = AssignIndexToEntity((Entity*) pObjectMemory);
-            ((Entity*) pObjectMemory)->_runtimeIndex = runtimeIndex;
-            ((Entity*) pObjectMemory)->_runtimeUID = nextUID;
+            /*int runtimeIndex = AssignIndexToEntity((Entity*) pObjectMemory);*/
+            //((T*) pObjectMemory)->_runtimeIndex = runtimeIndex;
+            //((T*) pObjectMemory)->_runtimeUID = nextUID;
             nextUID++;
+            
 
             // create Entity in place
             //Entity* component = new(pObjectMemory)T(std::forward<ARGS>(args)...);
 
-            return new rtm_ptr((Entity*) pObjectMemory);
+            //return new rtm_ptr((Entity*) pObjectMemory);
+            return new T();
         }
 
-        public IEnumerable<Entity> GetEntities()
+        public IEnumerable<EntityComponentLinker> GetEntities()
         {
-            return (IEnumerable<Entity>) _containerRegistries[typeof(Entity)];
+            return (IEnumerable<EntityComponentLinker>) _containerRegistries[typeof(EntityComponentLinker)];
+        }
+
+        public void GetComponentsForEntity(Entity entity)
+        {
+            EntityComponentLinker* links = (EntityComponentLinker*) _entityLUT[entity._runtimeIndex];
+            
+            //links->components
         }
         
+
         ~EntityManager()
         {
-            _entityLUT.Dispose();
-            LUTFragmFree.Dispose();
+            Dispose(false);
         }
-    }
-
-    public unsafe class rtm_ptr
-    {
-        Entity* _ptr;
-
-        long _uid;
         
-        public rtm_ptr(Entity* ptr)
+        private void ReleaseUnmanagedResources()
         {
-            _ptr = ptr;
-            _uid = _ptr->_runtimeUID;
+            // TODO release unmanaged resources here
+        }
+
+        private void Dispose(bool disposing)
+        {
+            ReleaseUnmanagedResources();
+            if (disposing)
+            {
+                _entityLUT.Dispose();
+                LUTFragmFree.Dispose();
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }

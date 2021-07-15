@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using src.Runtime;
+using src.Runtime.Components;
 using Unity.Collections;
 using UnityEditor;
-using UnityEditor.SceneManagement;
+/*using UnityEditor.SceneManagement;*/
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -16,36 +18,42 @@ namespace NECS
         private EcsWorld _world;
         public EcsWorld World => _world;
         
-        private static List<EcsWorldTest> _allWorlds = new List<EcsWorldTest>();
-
-        public static List<EcsWorldTest> AllWorlds
-        {
-            get => _allWorlds;
-            set => _allWorlds = value;
-        }
-
-        
         
         //TODO: Loading
         public bool IsLoaded => true;
 
         void OnEnable()
         {
-            _allWorlds.Add(this);
-            _world = new EcsWorld();
+            
+            _world = new EcsWorld(name);
             _world.Init();
+            
+            ECSWorldManager.Instance.AddWorld(_world);
 
-            _world.AddNewEntity();
+            var ent = _world.AddNewEntity();
+
+            _world.AddComponent<Position>(ent);
+            
+            
             _world.AddNewEntity();
             _world.AddNewEntity();
         }
 
         private void OnDisable()
         {
-            _allWorlds.Remove(this);
-            
+            ECSWorldManager.Instance.Remove(_world);
+            _world.Dispose();
+            _world = null;
         }
 
+        ~EcsWorldTest()
+        {
+            if (_world != null)
+            {
+                _world.Dispose();
+            }
+        }
+        
         private void Start()
         {
 

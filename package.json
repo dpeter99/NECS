@@ -1,4 +1,3 @@
-
 {
   "name": "com.dpeter99.necs",
   "version": "0.1.0",
@@ -11,9 +10,13 @@
     "arbitrary fields"
   ],
   "author": {
-    "name": "EngineArtist",
-    "email": "miika.vihersaari@gmail.com",
-    "url": "https://github.com/EngineArtist"
+    "name": "dpeter99",
+    "email": "dpeter99@gmail.com",
+    "url": "https://github.com/dpeter99"
   },
-  "hideInEditor": false
+  "hideInEditor": false,
+  "dependencies": {
+    "com.dpeter99.utils": ""
+  },
+  "type": "library"
 }

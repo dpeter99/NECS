@@ -2,7 +2,9 @@
     "name": "NECS.Runtime",
     "rootNamespace": "",
     "references": [
-        "GUID:e0cd26848372d4e5c891c569017e11f1"
+        "GUID:e0cd26848372d4e5c891c569017e11f1",
+        "GUID:58671935c1f7c044da1488fe38a1cc03",
+        "GUID:d8b63aba1907145bea998dd612889d6b"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
