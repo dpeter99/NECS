@@ -16,7 +16,10 @@
   },
   "hideInEditor": false,
   "dependencies": {
-    "com.dpeter99.utils": "https://github.com/dpeter99/UnityUtils.git"
+    "com.dpeter99.utils": "^0.0.0",
+    "com.unity.mathematics": "1.0.0-pre.3",
+    "com.unity.collections": "1.0.0-pre.3",
+    "com.unity.burst": "1.6.0-pre.2"
   },
   "type": "library"
 }
