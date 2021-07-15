@@ -12,9 +12,4 @@ namespace src.Runtime.Types
 
         internal UnsafeList<IntPtr> components;
     }
-
-    public struct ComponentLink
-    {
-        
-    }
 }

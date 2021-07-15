@@ -163,11 +163,18 @@ namespace NECS.Runtime
             return (IEnumerable<EntityComponentLinker>) _containerRegistries[typeof(EntityComponentLinker)];
         }
 
-        public void GetComponentsForEntity(Entity entity)
+        public List<ComponentRef> GetComponentsForEntity(Entity entity)
         {
             EntityComponentLinker* links = (EntityComponentLinker*) _entityLUT[entity._runtimeIndex];
+
+            var list = new List<ComponentRef>();
             
-            //links->components
+            for (int i = 0; i < links->components.length; i++)
+            {
+                list.Add(new ComponentRef((Component*) links->components[i]));
+            }
+            
+            return list;
         }
         
 

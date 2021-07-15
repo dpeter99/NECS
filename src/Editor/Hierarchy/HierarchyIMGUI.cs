@@ -13,7 +13,8 @@ namespace NECS.Editor.Hierarchy
         public HierarchyIMGUI(TreeViewState treeViewState)
             : base(treeViewState)
         {
-            Reload();
+            if(rootItem != null && rootItem.hasChildren)
+                Reload();
         }
     
         protected override TreeViewItem BuildRoot ()
@@ -22,6 +23,8 @@ namespace NECS.Editor.Hierarchy
 
             int nextID = 0;
             var allItems = new List<TreeViewItem>();
+            
+            _LUT.Clear();
             
             var worlds = ECSWorldManager.Instance.AllWorlds;
 

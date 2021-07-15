@@ -51,6 +51,12 @@ namespace NECS
             return _manager.AddComponent<T>(ent);
         }
 
+        public List<ComponentRef> GetComponents(Entity entity)
+        {
+            return _manager.GetComponentsForEntity(entity);
+            //return null;
+        }
+        
         public void Dispose()
         {
             _manager?.Dispose();

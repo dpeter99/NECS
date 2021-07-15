@@ -5,7 +5,7 @@ using NECS.Runtime;
 using src.Runtime;
 using UnityEditor;
 using UnityEngine;
-
+using Component = NECS.Runtime.Component;
 using UnityObject = UnityEngine.Object;
 
 namespace NECS.Editor.Inspector
@@ -51,9 +51,15 @@ namespace NECS.Editor.Inspector
         
         public override void OnInspectorGUI()
         {
-            //base.OnInspectorGUI();
+            var targetProxy = (EntityWrapper)target;
             
-            
+            //TODO: Iterate and draw every component
+            var components = ECSManager.GetComponents(targetProxy.Entity);
+
+            foreach (var component in components)
+            {
+                GUILayout.Label(component.GetData().GetType().FullName);
+            }
             
             GUILayout.Label("asdf");
         }

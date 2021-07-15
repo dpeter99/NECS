@@ -12,6 +12,8 @@ namespace src.Runtime
     public class NECSInit
     {
 
+        
+        
         //[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         [RuntimeInitializeOnLoadMethod]
         public static void Init()
@@ -19,7 +21,8 @@ namespace src.Runtime
             //SubsystemDescriptorWithProvider desc = new SubsystemDescriptorWithProvider<NECSSystem, SubsystemProvider>();
             
             Debug.Log("Init NECS");
-            new ECSWorldManager();
+
+            ECSManager.Init();
             
             SystemManager.Add(new NECS.Runtime.System());
             

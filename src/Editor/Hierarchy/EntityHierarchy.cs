@@ -126,8 +126,9 @@ namespace NECS.Editor
         
         public void OnUpdate()
         {
-            
-            RecreateRootItems();
+            if(a != null)
+                a.Reload();
+            //RecreateRootItems();
             //RecreateItemsToExpand();
             //RefreshView();
             //m_TreeView.Refresh();

@@ -47,7 +47,13 @@ namespace NECS.Editor
         {
             if (ECSWorldManager.Instance.worldDirty)
             {
-                //m_EntityHierarchy.OnUpdate();
+                //m_EntityHierarchy = rootVisualElement.Q<EntityHierarchy>();
+
+                if (m_EntityHierarchy != null)
+                {
+                    m_EntityHierarchy.Refresh(this);
+                }
+
                 Debug.Log("Update Tree");
                 
                 ECSWorldManager.Instance.ClearDirty();
