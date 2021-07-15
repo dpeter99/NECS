@@ -16,7 +16,7 @@
   },
   "hideInEditor": false,
   "dependencies": {
-    "com.dpeter99.utils": ""
+    "com.dpeter99.utils": "https://github.com/dpeter99/UnityUtils.git"
   },
   "type": "library"
 }
